@@ -124,6 +124,22 @@ input[type=checkbox]{width:15px;height:15px;cursor:pointer;accent-color:var(--r)
 /* orden activo highlight */
 .sort-bar{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .sort-label{font-size:12px;color:var(--color-text-secondary);font-weight:500;white-space:nowrap}
+
+/* ── SELECTOR TIPO CARGA ── */
+.tipo-selector{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:1rem}
+.tipo-card{flex:1;min-width:150px;border:2px solid var(--border);border-radius:var(--radl);padding:12px 14px;cursor:pointer;transition:all .2s;position:relative;overflow:hidden}
+.tipo-card:hover{border-color:var(--color-text-tertiary)}
+.tipo-card input[type=radio]{position:absolute;opacity:0;width:0;height:0}
+.tipo-card.sel-ambos.checked{border-color:var(--o);background:#FFF7ED}
+.tipo-card.sel-eg.checked{border-color:var(--r);background:#FEE2E2}
+.tipo-card.sel-ing.checked{border-color:var(--g);background:#DCFCE7}
+.tipo-card-icon{font-size:22px;margin-bottom:4px}
+.tipo-card-title{font-size:13px;font-weight:600;color:var(--color-text-primary)}
+.tipo-card-sub{font-size:11px;color:var(--color-text-tertiary);margin-top:2px;line-height:1.4}
+.tipo-info-box{padding:8px 12px;border-radius:var(--rad);font-size:12px;margin-top:0;margin-bottom:.9rem;border:1px solid transparent;display:flex;align-items:flex-start;gap:6px}
+.tipo-info-ambos{background:#FFF7ED;border-color:#FCD34D;color:#92400e}
+.tipo-info-eg{background:#FEE2E2;border-color:#FCA5A5;color:#991B1B}
+.tipo-info-ing{background:#DCFCE7;border-color:#86efac;color:#166534}
 </style>
 </head>
 <body>
@@ -231,10 +247,41 @@ input[type=checkbox]{width:15px;height:15px;cursor:pointer;accent-color:var(--r)
     <div class="ct"><i class="ti ti-table-import"></i>Cargar egresos e ingresos desde Excel</div>
     <div class="step-indicator"><div class="step active" id="step1">1 · Seleccionar archivo</div><div class="step" id="step2">2 · Validar</div><div class="step" id="step3">3 · Generar</div></div>
     <div id="bp1">
+      <!-- SELECTOR DE TIPO -->
+      <div style="margin-bottom:.9rem">
+        <div style="font-size:11px;font-weight:600;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px">
+          <i class="ti ti-filter" style="vertical-align:-2px;font-size:14px"></i> ¿Qué tipo de comprobantes contiene el archivo?
+        </div>
+        <div class="tipo-selector">
+          <label class="tipo-card sel-ambos checked" id="tc-ambos" onclick="selTipo('ambos')">
+            <input type="radio" name="btipo" value="ambos" checked>
+            <div class="tipo-card-icon"><i class="ti ti-files" style="color:var(--o)"></i></div>
+            <div class="tipo-card-title">Egresos + Ingresos</div>
+            <div class="tipo-card-sub">Archivo con dos hojas:<br><strong>"Egresos"</strong> e <strong>"Ingresos"</strong></div>
+          </label>
+          <label class="tipo-card sel-eg" id="tc-eg" onclick="selTipo('egreso')">
+            <input type="radio" name="btipo" value="egreso">
+            <div class="tipo-card-icon"><i class="ti ti-arrow-up-circle" style="color:var(--r)"></i></div>
+            <div class="tipo-card-title">Solo Egresos</div>
+            <div class="tipo-card-sub">Todos los registros se<br>cargarán como <strong>egresos</strong></div>
+          </label>
+          <label class="tipo-card sel-ing" id="tc-ing" onclick="selTipo('ingreso')">
+            <input type="radio" name="btipo" value="ingreso">
+            <div class="tipo-card-icon"><i class="ti ti-arrow-down-circle" style="color:var(--g)"></i></div>
+            <div class="tipo-card-title">Solo Ingresos</div>
+            <div class="tipo-card-sub">Todos los registros se<br>cargarán como <strong>ingresos</strong></div>
+          </label>
+        </div>
+        <div class="tipo-info-box tipo-info-ambos" id="tipo-info">
+          <i class="ti ti-info-circle" style="font-size:15px;flex-shrink:0"></i>
+          <span>El archivo debe tener dos hojas: <strong>"Egresos"</strong> e <strong>"Ingresos"</strong>. Cada hoja se leerá según su nombre.</span>
+        </div>
+      </div>
+      <!-- ZONA DE CARGA -->
       <div class="upload-zone" id="drop-zone" onclick="document.getElementById('fxlsx').click()" ondragover="event.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')" ondrop="handleDrop(event)">
         <i class="ti ti-table-import"></i>
-        <p style="font-size:13px;font-weight:600">Arrastra o haz clic para seleccionar el archivo Excel</p>
-        <p style="font-size:11px;color:var(--color-text-tertiary);margin-top:4px">Formato .xlsx — Hojas: "Egresos" e "Ingresos" — Máx. 50 filas/hoja</p>
+        <p style="font-size:13px;font-weight:600" id="drop-label">Arrastra o haz clic para seleccionar el archivo Excel</p>
+        <p style="font-size:11px;color:var(--color-text-tertiary);margin-top:4px">Formato .xlsx — Máx. 50 filas/hoja</p>
       </div>
       <input type="file" id="fxlsx" accept=".xlsx,.xls" style="display:none" onchange="readXlsx(this)">
       <div style="margin-top:.85rem;padding:10px 12px;background:var(--color-background-secondary);border-radius:var(--rad);font-size:12px;color:var(--color-text-secondary)">
@@ -583,14 +630,144 @@ function dlPlantilla(){var csv='Tipo,Nombre,NIT/CC,Teléfono,Email,Ciudad\nProve
 // Carga masiva
 function handleDrop(ev){ev.preventDefault();document.getElementById('drop-zone').classList.remove('drag');var f=ev.dataTransfer.files[0];if(f)processFile(f);}
 function readXlsx(input){var f=input.files[0];if(f)processFile(f);}
-function processFile(file){var reader=new FileReader();reader.onload=function(e){try{var wb=XLSX.read(e.target.result,{type:'array'});var egs=[],ings=[];var wsE=wb.Sheets['Egresos']||wb.Sheets['egresos']||wb.Sheets[wb.SheetNames[0]];if(wsE){var rE=XLSX.utils.sheet_to_json(wsE,{header:1,defval:''});var sE=findStart(rE);for(var i=sE;i<rE.length;i++){var r=rE[i];var o=isN0(r[0])?1:0;var nom=String(r[o]||'').trim();if(!nom)continue;var val=parseFloat(r[o+2])||0;var conc=String(r[o+3]||'').trim();var banco=String(r[o+4]||'').trim();var d=parseInt(r[o+5])||0,mm=parseInt(r[o+6])||0,yy=parseInt(r[o+7])||0;egs.push({nombre:nom,nit:String(r[o+1]||'').trim(),valor:val,concepto:conc,banco:banco,fecha:yy&&mm&&d?(yy+'-'+pad2(mm)+'-'+pad2(d)):'',_e:valReg({nombre:nom,valor:val,banco:banco,concepto:conc})});}}var wsI=wb.Sheets['Ingresos']||wb.Sheets['ingresos']||(wb.SheetNames[1]?wb.Sheets[wb.SheetNames[1]]:null);if(wsI){var rI=XLSX.utils.sheet_to_json(wsI,{header:1,defval:''});var sI=findStart(rI);for(var j=sI;j<rI.length;j++){var rw=rI[j];var o2=isN0(rw[0])?1:0;var nom2=String(rw[o2]||'').trim();if(!nom2)continue;var val2=parseFloat(rw[o2+2])||0;ings.push({nombre:nom2,nit:String(rw[o2+1]||'').trim(),valor:val2,factura:String(rw[o2+3]||'').trim(),concepto:String(rw[o2+4]||'').trim(),banco:String(rw[o2+5]||'').trim(),fecha:(function(){var d2=parseInt(rw[o2+6])||0,m2=parseInt(rw[o2+7])||0,y2=parseInt(rw[o2+8])||0;return y2&&m2&&d2?(y2+'-'+pad2(m2)+'-'+pad2(d2)):'';})(),_e:valReg({nombre:nom2,valor:val2,banco:String(rw[o2+5]||'').trim(),concepto:String(rw[o2+4]||'').trim()})});}}batchData={egs:egs,ings:ings};showPrev(egs,ings,file.name);}catch(err){alert('Error al leer el archivo: '+err.message);}};reader.readAsArrayBuffer(file);}
+function selTipo(tipo){
+  ['ambos','egreso','ingreso'].forEach(function(t){
+    var el=document.getElementById('tc-'+t);
+    if(el){el.classList.remove('checked');}
+  });
+  var sel=document.getElementById('tc-'+tipo);
+  if(sel)sel.classList.add('checked');
+  var radio=document.querySelector('input[name="btipo"][value="'+tipo+'"]');
+  if(radio)radio.checked=true;
+  var info=document.getElementById('tipo-info');
+  var label=document.getElementById('drop-label');
+  if(tipo==='ambos'){
+    info.className='tipo-info-box tipo-info-ambos';
+    info.innerHTML='<i class="ti ti-info-circle" style="font-size:15px;flex-shrink:0"></i><span>El archivo debe tener dos hojas: <strong>"Egresos"</strong> e <strong>"Ingresos"</strong>. Cada hoja se leerá según su nombre.</span>';
+    if(label)label.textContent='Arrastra o haz clic para seleccionar el archivo Excel';
+  } else if(tipo==='egreso'){
+    info.className='tipo-info-box tipo-info-eg';
+    info.innerHTML='<i class="ti ti-info-circle" style="font-size:15px;flex-shrink:0"></i><span><strong>Solo Egresos:</strong> Todos los datos del archivo se cargarán como egresos, sin importar el nombre de la hoja.</span>';
+    if(label)label.textContent='Arrastra o haz clic — archivo de EGRESOS';
+  } else {
+    info.className='tipo-info-box tipo-info-ing';
+    info.innerHTML='<i class="ti ti-info-circle" style="font-size:15px;flex-shrink:0"></i><span><strong>Solo Ingresos:</strong> Todos los datos del archivo se cargarán como ingresos, sin importar el nombre de la hoja.</span>';
+    if(label)label.textContent='Arrastra o haz clic — archivo de INGRESOS';
+  }
+}
+
+function getTipoCarga(){
+  var r=document.querySelector('input[name="btipo"]:checked');
+  return r?r.value:'ambos';
+}
+
+function processFile(file){
+  var tipoSel=getTipoCarga();
+  var reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      var wb=XLSX.read(e.target.result,{type:'array'});
+      var egs=[],ings=[];
+
+      if(tipoSel==='egreso'){
+        // Leer primera hoja disponible como EGRESOS
+        var wsE=wb.Sheets[wb.SheetNames[0]];
+        if(wsE){
+          var rE=XLSX.utils.sheet_to_json(wsE,{header:1,defval:''});
+          var sE=findStart(rE);
+          for(var i=sE;i<rE.length;i++){
+            var r=rE[i];var o=isN0(r[0])?1:0;
+            var nom=String(r[o]||'').trim();if(!nom)continue;
+            var val=parseFloat(r[o+2])||0;
+            var conc=String(r[o+3]||'').trim();
+            var banco=String(r[o+4]||'').trim();
+            var d=parseInt(r[o+5])||0,mm=parseInt(r[o+6])||0,yy=parseInt(r[o+7])||0;
+            egs.push({nombre:nom,nit:String(r[o+1]||'').trim(),valor:val,concepto:conc,banco:banco,
+              fecha:yy&&mm&&d?(yy+'-'+pad2(mm)+'-'+pad2(d)):'',
+              _e:valReg({nombre:nom,valor:val,banco:banco,concepto:conc})});
+          }
+        }
+
+      } else if(tipoSel==='ingreso'){
+        // Leer primera hoja disponible como INGRESOS
+        var wsI=wb.Sheets[wb.SheetNames[0]];
+        if(wsI){
+          var rI=XLSX.utils.sheet_to_json(wsI,{header:1,defval:''});
+          var sI=findStart(rI);
+          for(var j=sI;j<rI.length;j++){
+            var rw=rI[j];var o2=isN0(rw[0])?1:0;
+            var nom2=String(rw[o2]||'').trim();if(!nom2)continue;
+            var val2=parseFloat(rw[o2+2])||0;
+            ings.push({nombre:nom2,nit:String(rw[o2+1]||'').trim(),valor:val2,
+              factura:String(rw[o2+3]||'').trim(),
+              concepto:String(rw[o2+4]||'').trim(),
+              banco:String(rw[o2+5]||'').trim(),
+              fecha:(function(row,off){
+                var d2=parseInt(row[off+6])||0,m2=parseInt(row[off+7])||0,y2=parseInt(row[off+8])||0;
+                return y2&&m2&&d2?(y2+'-'+pad2(m2)+'-'+pad2(d2)):'';
+              })(rw,o2),
+              _e:valReg({nombre:nom2,valor:val2,
+                banco:String(rw[o2+5]||'').trim(),
+                concepto:String(rw[o2+4]||'').trim()})});
+          }
+        }
+
+      } else {
+        // AMBOS: buscar por nombre de hoja
+        var wsEA=wb.Sheets['Egresos']||wb.Sheets['egresos'];
+        if(wsEA){
+          var rEA=XLSX.utils.sheet_to_json(wsEA,{header:1,defval:''});
+          var sEA=findStart(rEA);
+          for(var ia=sEA;ia<rEA.length;ia++){
+            var ra=rEA[ia];var oa=isN0(ra[0])?1:0;
+            var noma=String(ra[oa]||'').trim();if(!noma)continue;
+            var vala=parseFloat(ra[oa+2])||0;
+            var conca=String(ra[oa+3]||'').trim();
+            var bancoa=String(ra[oa+4]||'').trim();
+            var da=parseInt(ra[oa+5])||0,mma=parseInt(ra[oa+6])||0,yya=parseInt(ra[oa+7])||0;
+            egs.push({nombre:noma,nit:String(ra[oa+1]||'').trim(),valor:vala,concepto:conca,banco:bancoa,
+              fecha:yya&&mma&&da?(yya+'-'+pad2(mma)+'-'+pad2(da)):'',
+              _e:valReg({nombre:noma,valor:vala,banco:bancoa,concepto:conca})});
+          }
+        }
+        var wsIA=wb.Sheets['Ingresos']||wb.Sheets['ingresos']||(wb.SheetNames[1]?wb.Sheets[wb.SheetNames[1]]:null);
+        if(wsIA){
+          var rIA=XLSX.utils.sheet_to_json(wsIA,{header:1,defval:''});
+          var sIA=findStart(rIA);
+          for(var ja=sIA;ja<rIA.length;ja++){
+            var rwa=rIA[ja];var o2a=isN0(rwa[0])?1:0;
+            var nom2a=String(rwa[o2a]||'').trim();if(!nom2a)continue;
+            var val2a=parseFloat(rwa[o2a+2])||0;
+            ings.push({nombre:nom2a,nit:String(rwa[o2a+1]||'').trim(),valor:val2a,
+              factura:String(rwa[o2a+3]||'').trim(),
+              concepto:String(rwa[o2a+4]||'').trim(),
+              banco:String(rwa[o2a+5]||'').trim(),
+              fecha:(function(row,off){
+                var d2=parseInt(row[off+6])||0,m2=parseInt(row[off+7])||0,y2=parseInt(row[off+8])||0;
+                return y2&&m2&&d2?(y2+'-'+pad2(m2)+'-'+pad2(d2)):'';
+              })(rwa,o2a),
+              _e:valReg({nombre:nom2a,valor:val2a,
+                banco:String(rwa[o2a+5]||'').trim(),
+                concepto:String(rwa[o2a+4]||'').trim()})});
+          }
+        }
+      }
+
+      batchData={egs:egs,ings:ings};
+      showPrev(egs,ings,file.name,tipoSel);
+    }catch(err){alert('Error al leer el archivo: '+err.message);}
+  };
+  reader.readAsArrayBuffer(file);
+}
 function findStart(rows){for(var i=0;i<rows.length;i++){var r=rows[i];var f=String(r[0]||'').trim();if(f==='1'||parseInt(f)>0)return i;var s=String(r[1]||'').trim().toLowerCase();if(s&&s.length>2&&!['pagado a (*)','recibido de (*)','nombre','pagado a','recibido de','tipo'].includes(s)&&isNaN(parseInt(s)))return i;}return 4;}
 function isN0(v){return v===''||v===null||v===undefined||(typeof v==='number'&&v<100)||(!isNaN(parseInt(v))&&String(v).trim().length<=4);}
 function valReg(r){var e=[];if(!r.nombre)e.push('Sin nombre');if(!r.valor||r.valor<=0)e.push('Valor inválido');if(!r.banco)e.push('Sin banco');if(!r.concepto)e.push('Sin concepto');return e;}
-function showPrev(egs,ings,fname){setStep(2);document.getElementById('bp1').style.display='none';document.getElementById('bp2').style.display='block';var eok=egs.filter(function(r){return!r._e.length;}).length,iok=ings.filter(function(r){return!r._e.length;}).length;var al='<div class="alert alert-ok"><i class="ti ti-file-check" style="font-size:15px;flex-shrink:0"></i><div><strong>'+fname+'</strong> leído — '+egs.length+' egresos, '+ings.length+' ingresos.</div></div>';if(egs.length-eok+ings.length-iok)al+='<div class="alert alert-warn"><i class="ti ti-alert-triangle" style="font-size:15px;flex-shrink:0"></i><div><strong>'+(egs.length-eok+ings.length-iok)+' registros con errores</strong> serán omitidos.</div></div>';document.getElementById('b-alerts').innerHTML=al;var eh='<div class="card" style="padding:0;overflow:hidden"><div style="padding:9px 13px;background:#FEE2E2;font-weight:600;font-size:13px;display:flex;justify-content:space-between"><span>Egresos ('+eok+'/'+egs.length+')</span><span style="font-size:12px;color:#666">N°: '+DB.cEg+'–'+(DB.cEg+eok-1)+'</span></div>';if(egs.length){eh+='<div class="tw"><table><thead><tr><th>Nombre</th><th>NIT/CC</th><th>Valor</th><th>Banco</th><th>Fecha</th><th>Estado</th></tr></thead><tbody>';egs.forEach(function(r){var ok=!r._e.length;eh+='<tr style="'+(ok?'':'opacity:.55')+'"><td>'+r.nombre+'</td><td style="font-size:12px">'+(r.nit||'—')+'</td><td style="color:var(--r);font-weight:600">'+fmt(r.valor)+'</td><td>'+r.banco+'</td><td>'+fmtF(r.fecha)+'</td><td>'+(ok?'<span class="bdg bdg-ing">✓</span>':'<span class="bdg bdg-eg">✗ '+r._e[0]+'</span>')+'</td></tr>';});eh+='</tbody></table></div>';}else eh+='<div class="te">Sin datos</div>';eh+='</div>';document.getElementById('b-eg-prev').innerHTML=eh;var ih='<div class="card" style="padding:0;overflow:hidden"><div style="padding:9px 13px;background:#DCFCE7;font-weight:600;font-size:13px;display:flex;justify-content:space-between"><span>Ingresos ('+iok+'/'+ings.length+')</span><span style="font-size:12px;color:#666">N°: '+DB.cIng+'–'+(DB.cIng+iok-1)+'</span></div>';if(ings.length){ih+='<div class="tw"><table><thead><tr><th>Nombre</th><th>NIT/CC</th><th>Valor</th><th>Factura</th><th>Banco</th><th>Estado</th></tr></thead><tbody>';ings.forEach(function(r){var ok=!r._e.length;ih+='<tr style="'+(ok?'':'opacity:.55')+'"><td>'+r.nombre+'</td><td style="font-size:12px">'+(r.nit||'—')+'</td><td style="color:var(--g);font-weight:600">'+fmt(r.valor)+'</td><td>'+(r.factura||'—')+'</td><td>'+r.banco+'</td><td>'+(ok?'<span class="bdg bdg-ing">✓</span>':'<span class="bdg bdg-eg">✗ '+r._e[0]+'</span>')+'</td></tr>';});ih+='</tbody></table></div>';}else ih+='<div class="te">Sin datos</div>';ih+='</div>';document.getElementById('b-ing-prev').innerHTML=ih;document.getElementById('btn-gen').innerHTML='<i class="ti ti-bolt"></i>Generar '+(eok+iok)+' comprobantes';document.getElementById('btn-gen').disabled=(eok+iok)===0;}
+function showPrev(egs,ings,fname,tipoSel){setStep(2);document.getElementById('bp1').style.display='none';document.getElementById('bp2').style.display='block';var eok=egs.filter(function(r){return!r._e.length;}).length,iok=ings.filter(function(r){return!r._e.length;}).length;var tipoLabel=tipoSel==='egreso'?'<span class="bdg bdg-eg" style="margin-left:6px">Solo Egresos</span>':tipoSel==='ingreso'?'<span class="bdg bdg-ing" style="margin-left:6px">Solo Ingresos</span>':'<span class="bdg" style="background:#FFF7ED;color:#7C2D12;margin-left:6px">Egresos + Ingresos</span>';
+var al='<div class="alert alert-ok"><i class="ti ti-file-check" style="font-size:15px;flex-shrink:0"></i><div><strong>'+fname+'</strong>'+tipoLabel+' — '+egs.length+' egresos, '+ings.length+' ingresos detectados.</div></div>';if(egs.length-eok+ings.length-iok)al+='<div class="alert alert-warn"><i class="ti ti-alert-triangle" style="font-size:15px;flex-shrink:0"></i><div><strong>'+(egs.length-eok+ings.length-iok)+' registros con errores</strong> serán omitidos.</div></div>';document.getElementById('b-alerts').innerHTML=al;var eh='<div class="card" style="padding:0;overflow:hidden"><div style="padding:9px 13px;background:#FEE2E2;font-weight:600;font-size:13px;display:flex;justify-content:space-between"><span>Egresos ('+eok+'/'+egs.length+')</span><span style="font-size:12px;color:#666">N°: '+DB.cEg+'–'+(DB.cEg+eok-1)+'</span></div>';if(egs.length){eh+='<div class="tw"><table><thead><tr><th>Nombre</th><th>NIT/CC</th><th>Valor</th><th>Banco</th><th>Fecha</th><th>Estado</th></tr></thead><tbody>';egs.forEach(function(r){var ok=!r._e.length;eh+='<tr style="'+(ok?'':'opacity:.55')+'"><td>'+r.nombre+'</td><td style="font-size:12px">'+(r.nit||'—')+'</td><td style="color:var(--r);font-weight:600">'+fmt(r.valor)+'</td><td>'+r.banco+'</td><td>'+fmtF(r.fecha)+'</td><td>'+(ok?'<span class="bdg bdg-ing">✓</span>':'<span class="bdg bdg-eg">✗ '+r._e[0]+'</span>')+'</td></tr>';});eh+='</tbody></table></div>';}else eh+='<div class="te">Sin datos</div>';eh+='</div>';document.getElementById('b-eg-prev').innerHTML=eh;var ih='<div class="card" style="padding:0;overflow:hidden"><div style="padding:9px 13px;background:#DCFCE7;font-weight:600;font-size:13px;display:flex;justify-content:space-between"><span>Ingresos ('+iok+'/'+ings.length+')</span><span style="font-size:12px;color:#666">N°: '+DB.cIng+'–'+(DB.cIng+iok-1)+'</span></div>';if(ings.length){ih+='<div class="tw"><table><thead><tr><th>Nombre</th><th>NIT/CC</th><th>Valor</th><th>Factura</th><th>Banco</th><th>Estado</th></tr></thead><tbody>';ings.forEach(function(r){var ok=!r._e.length;ih+='<tr style="'+(ok?'':'opacity:.55')+'"><td>'+r.nombre+'</td><td style="font-size:12px">'+(r.nit||'—')+'</td><td style="color:var(--g);font-weight:600">'+fmt(r.valor)+'</td><td>'+(r.factura||'—')+'</td><td>'+r.banco+'</td><td>'+(ok?'<span class="bdg bdg-ing">✓</span>':'<span class="bdg bdg-eg">✗ '+r._e[0]+'</span>')+'</td></tr>';});ih+='</tbody></table></div>';}else ih+='<div class="te">Sin datos</div>';ih+='</div>';document.getElementById('b-ing-prev').innerHTML=ih;document.getElementById('btn-gen').innerHTML='<i class="ti ti-bolt"></i>Generar '+(eok+iok)+' comprobantes';document.getElementById('btn-gen').disabled=(eok+iok)===0;}
 function generarMasivo(){var egs=batchData.egs.filter(function(r){return!r._e.length;});var ings=batchData.ings.filter(function(r){return!r._e.length;});var enums=[],inums=[];egs.forEach(function(r){var rec={id:Date.now()+Math.random(),num:DB.cEg,tipo:'Egreso',nombre:r.nombre,nit:r.nit,valor:r.valor,banco:r.banco,concepto:r.concepto,fecha:r.fecha};DB.eg.unshift(rec);enums.push(DB.cEg);DB.cEg++;});ings.forEach(function(r){var rec={id:Date.now()+Math.random(),num:DB.cIng,tipo:'Ingreso',nombre:r.nombre,nit:r.nit,valor:r.valor,factura:r.factura,banco:r.banco,concepto:r.concepto,fecha:r.fecha};DB.ing.unshift(rec);inums.push(DB.cIng);DB.cIng++;});sv('lbl-eg',DB.cEg);sv('c-eg',DB.cEg);sv('lbl-ing',DB.cIng);sv('c-ing',DB.cIng);updateStats();setStep(3);document.getElementById('bp2').style.display='none';document.getElementById('bp3').style.display='block';var te=egs.reduce(function(a,r){return a+r.valor;},0),ti=ings.reduce(function(a,r){return a+r.valor;},0);document.getElementById('b-result').innerHTML='<div class="alert alert-ok"><i class="ti ti-circle-check" style="font-size:18px;flex-shrink:0"></i><div><strong>'+(egs.length+ings.length)+' comprobantes generados</strong><br><span style="font-size:12px">'+egs.length+' egresos · '+fmt(te)+' &nbsp;|&nbsp; '+ings.length+' ingresos · '+fmt(ti)+'</span></div></div>';var allR=DB.eg.filter(function(r){return enums.indexOf(r.num)>-1;}).concat(DB.ing.filter(function(r){return inums.indexOf(r.num)>-1;}));allR.sort(function(a,b){return a.num-b.num;});var lH='<div class="card"><div class="ct"><i class="ti ti-file-check"></i>Comprobantes generados</div>';allR.forEach(function(r){lH+='<div class="compr-mini" onclick="verById('+r.id+',\''+r.tipo+'\')">'+'<div style="display:flex;align-items:center;gap:9px"><span class="bdg '+(r.tipo==='Egreso'?'bdg-eg':'bdg-ing')+'">'+r.tipo+'</span><span style="font-weight:500">'+r.nombre+'</span><span style="font-size:11px;color:var(--color-text-tertiary)">N°'+r.num+' · '+fmtF(r.fecha)+'</span></div>'+'<span style="font-weight:600;color:'+(r.tipo==='Egreso'?'var(--r)':'var(--g)')+'">'+fmt(r.valor)+'</span></div>';});lH+='</div>';document.getElementById('b-comprobantes').innerHTML=lH;}
 function setStep(n){[1,2,3].forEach(function(i){var el=document.getElementById('step'+i);el.className='step'+(i<n?' done':i===n?' active':'');});}
-function resetBatch(){batchData={egs:[],ings:[]};['bp2','bp3'].forEach(function(id){document.getElementById(id).style.display='none';});document.getElementById('bp1').style.display='block';['b-alerts','b-eg-prev','b-ing-prev','b-result','b-comprobantes'].forEach(function(id){document.getElementById(id).innerHTML='';});document.getElementById('fxlsx').value='';setStep(1);}
+function resetBatch(){
+  selTipo('ambos');batchData={egs:[],ings:[]};['bp2','bp3'].forEach(function(id){document.getElementById(id).style.display='none';});document.getElementById('bp1').style.display='block';['b-alerts','b-eg-prev','b-ing-prev','b-result','b-comprobantes'].forEach(function(id){document.getElementById(id).innerHTML='';});document.getElementById('fxlsx').value='';setStep(1);}
 
 // BUILDERS COMPROBANTES
 function buildEg(r){var dp=r.fecha?r.fecha.split('-'):['','',''];return'<table style="width:100%;border-collapse:collapse;font-family:Arial,sans-serif;font-size:10px"><tr style="height:44px"><td rowspan="2" colspan="3" style="border:1.5px solid #aaa;width:130px;vertical-align:middle;padding:0">'+logoHTML()+'</td><td colspan="9" style="border:1.5px solid #aaa;text-align:center;font-size:16px;font-weight:700;border-bottom:1px solid #ddd;border-right:none">COMPROBANTE DE EGRESOS</td><td colspan="4" rowspan="2" style="border:1.5px solid #aaa;padding:6px 8px;border-left:none;vertical-align:middle"><div style="font-size:10px;font-weight:700;text-align:right;color:#555">N°.</div><div style="font-size:22px;font-weight:700;color:#D40000;text-align:right">'+r.num+'</div></td></tr><tr style="height:26px"><td colspan="2" style="border:1px solid #ccc;background:#f2f2f2;text-align:center;font-weight:700;font-size:9px">FECHA</td><td style="border:1px solid #ccc;background:#f2f2f2;text-align:center;font-weight:700;font-size:9px">DÍA</td><td style="border:1px solid #ccc;background:#f2f2f2;text-align:center;font-weight:700;font-size:9px">MES</td><td style="border:1px solid #ccc;background:#f2f2f2;text-align:center;font-weight:700;font-size:9px">AÑO</td><td style="border:1px solid #ccc;text-align:center;font-weight:700;font-size:11px">'+dp[2]+'</td><td style="border:1px solid #ccc;text-align:center;font-weight:700;font-size:11px">'+dp[1]+'</td><td style="border:1px solid #ccc;text-align:center;font-weight:700;font-size:11px">'+dp[0]+'</td><td colspan="2" style="border:1px solid #ccc;background:#f2f2f2;text-align:center;font-weight:700;font-size:9px">VALOR $</td></tr><tr style="height:26px"><td style="border:1px solid #ccc;background:#f2f2f2;font-weight:700;font-size:9px;text-align:center">CIUDAD</td><td colspan="2" style="border:1px solid #ccc;font-weight:700;text-align:center">'+EMPRESA.ciudad+'</td><td colspan="4" style="border:1px solid #ccc;background:#f2f2f2;font-weight:700;font-size:9px;text-align:center">PAGADO A</td><td colspan="5" style="border:1px solid #ccc;font-weight:600;font-size:10px;padding:2px 6px">'+r.nombre+'</td><td colspan="2" style="border:1px solid #ccc;background:#f2f2f2;font-weight:700;font-size:9px;text-align:center">BANCO</td><td colspan="2" style="border:1px solid #ccc;font-weight:700;font-size:10px;text-align:center;color:#D40000">'+r.banco.toUpperCase()+'</td></tr><tr style="height:26px"><td colspan="3" style="border:1px solid #ccc;background:#f2f2f2;font-weight:700;font-size:9px;text-align:center">VALOR $</td><td style="border:1px solid #ccc;text-align:center;font-weight:700">$</td><td colspan="12" style="border:1px solid #ccc;text-align:right;font-weight:700;font-size:13px;padding-right:8px;color:#D40000">'+fmt(r.valor)+'</td></tr><tr style="height:26px"><td colspan="4" style="border:1px solid #ccc;background:#f2f2f2;font-weight:700;font-size:9px;text-align:center">LA SUMA DE (EN LETRAS)</td><td colspan="12" style="border:1px solid #ccc;font-size:9.5px;padding:2px 6px;font-style:italic">'+n2l(Math.round(r.valor))+' PESOS M/CTE</td></tr><tr style="height:26px"><td colspan="4" style="border:1px solid #ccc;background:#f2f2f2;font-weight:700;font-size:9px;text-align:center">POR CONCEPTO DE</td><td colspan="12" style="border:1px solid #ccc;font-size:10px;padding:2px 6px;font-weight:600">'+r.concepto+'</td></tr><tr style="height:8px"><td colspan="16" style="border:none"></td></tr><tr style="height:22px"><td colspan="3" style="border:1px solid #ccc;background:#f2f2f2;font-weight:700;font-size:9px;text-align:center">CUENTA</td><td colspan="3" style="border:1px solid #ccc;background:#f2f2f2;font-weight:700;font-size:9px;text-align:center">DÉBITO</td><td colspan="3" style="border:1px solid #ccc;background:#f2f2f2;font-weight:700;font-size:9px;text-align:center">CRÉDITO</td><td colspan="3" style="border:1px solid #ccc;background:#f2f2f2;font-weight:700;font-size:9px;text-align:center">CHEQUE N°</td><td colspan="2" style="border:1px solid #ccc;background:#f2f2f2;font-weight:700;font-size:9px;text-align:center">BANCO</td><td style="border:1px solid #ccc;font-weight:700;font-size:9px;text-align:center;color:#FF6C00">'+r.banco+'</td></tr><tr style="height:22px"><td colspan="3" style="border:1px solid #ccc"></td><td colspan="3" style="border:1px solid #ccc"></td><td colspan="3" style="border:1px solid #ccc"></td><td colspan="3" style="border:1px solid #ccc;background:#f2f2f2;font-weight:700;font-size:9px;text-align:center">SUCURSAL</td><td colspan="4" style="border:1px solid #ccc;font-weight:700;font-size:9px;text-align:center">EFECTIVO</td></tr><tr style="height:22px"><td colspan="3" style="border:1px solid #ccc"></td><td colspan="3" style="border:1px solid #ccc"></td><td colspan="3" style="border:1px solid #ccc"></td><td colspan="7" rowspan="2" style="border:1px solid #ccc;background:#f0f0f0;font-weight:700;font-size:9px;text-align:center;vertical-align:middle">FIRMA Y SELLO DEL BENEFICIARIO</td></tr><tr style="height:22px"><td colspan="3" style="border:1px solid #ccc"></td><td colspan="3" style="border:1px solid #ccc"></td><td colspan="3" style="border:1px solid #ccc"></td></tr><tr style="height:26px"><td colspan="3" style="border:1px solid #ccc;background:#f2f2f2;font-weight:700;font-size:9px;text-align:center">ELABORADO</td><td colspan="3" style="border:1px solid #ccc;background:#f2f2f2;font-weight:700;font-size:9px;text-align:center">APROBADO</td><td colspan="3" style="border:1px solid #ccc;background:#f2f2f2;font-weight:700;font-size:9px;text-align:center">CONTABILIZADO</td><td colspan="3" style="border:1px solid #ccc;background:#f2f2f2;font-weight:700;font-size:9px;padding-left:4px">NIT / CC:</td><td colspan="4" style="border:1px solid #ccc;font-weight:600;font-size:10px;padding:2px 6px">'+(r.nit||'')+'</td></tr></table>';}
